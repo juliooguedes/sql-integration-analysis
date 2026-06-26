@@ -26,55 +26,59 @@ Metodologia
 
 1. Validação de registro específico
 
-sqlSELECT
-    id,
-    xid,
-    start_date,
-    end_date,
-    created_at,
-    ROUND((EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS diferenca_horas,
-    value
-FROM integration.records
-WHERE xid = 'ext-000001';
+sql
+    SELECT
+        id,
+        xid,
+        start_date,
+        end_date,
+        created_at,
+        ROUND((EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS diferenca_horas,
+        value
+    FROM integration.records
+    WHERE xid = 'ext-000001';
 
 2. Distribuição de diferenças por quantidade de registros
 
-sqlSELECT
-    ROUND(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600) AS diferenca_horas,
-    COUNT(*) AS quantidade
-FROM integration.records
-WHERE source = 'external'
-GROUP BY diferenca_horas
-ORDER BY diferenca_horas;
+sql
+    SELECT
+        ROUND(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600) AS diferenca_horas,
+        COUNT(*) AS quantidade
+    FROM integration.records
+    WHERE source = 'external'
+    GROUP BY diferenca_horas
+    ORDER BY diferenca_horas;
 
 3. Resumo executivo do impacto
 
-sqlSELECT
-    COUNT(*) AS total_registros,
-    COUNT(CASE WHEN EXTRACT(EPOCH FROM (created_at - start_date)) / 3600 <= 4 THEN 1 END) AS sincronizacao_normal,
-    COUNT(CASE WHEN EXTRACT(EPOCH FROM (created_at - start_date)) / 3600 > 4  THEN 1 END) AS sincronizacao_atrasada,
-    ROUND(AVG(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS media_horas_atraso,
-    ROUND(MAX(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS maior_atraso_horas
-FROM integration.records
-WHERE source = 'external';
+sql
+    SELECT
+        COUNT(*) AS total_registros,
+        COUNT(CASE WHEN EXTRACT(EPOCH FROM (created_at - start_date)) / 3600 <= 4 THEN 1 END) AS sincronizacao_normal,
+        COUNT(CASE WHEN EXTRACT(EPOCH FROM (created_at - start_date)) / 3600 > 4  THEN 1 END) AS sincronizacao_atrasada,
+        ROUND(AVG(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS media_horas_atraso,
+        ROUND(MAX(EXTRACT(EPOCH FROM (created_at - start_date)) / 3600)::numeric, 1) AS maior_atraso_horas
+    FROM integration.records
+    WHERE source = 'external';
 
 4. Isolamento do fuso horário para medir atraso real
 
-sqlSELECT
-    r.id,
-    r.xid,
-    r.start_date,
-    r.end_date,
-    (r.end_date - r.start_date)                          AS duracao_evento,
-    r.created_at,
-    (r.created_at - r.start_date)                        AS diferenca_total,
-    (r.created_at - INTERVAL '3 hours')                  AS created_at_local,
-    ((r.created_at - INTERVAL '3 hours') - r.start_date) AS atraso_sincronizacao,
-    ((r.created_at - INTERVAL '3 hours') - r.end_date)   AS atraso_apos_encerramento
-FROM integration.records r
-WHERE r.source = 'external'
-AND r.start_date >= NOW() - INTERVAL '7 days'
-ORDER BY r.created_at DESC;
+sql
+    SELECT
+        r.id,
+        r.xid,
+        r.start_date,
+        r.end_date,
+        (r.end_date - r.start_date)                          AS duracao_evento,
+        r.created_at,
+        (r.created_at - r.start_date)                        AS diferenca_total,
+        (r.created_at - INTERVAL '3 hours')                  AS created_at_local,
+        ((r.created_at - INTERVAL '3 hours') - r.start_date) AS atraso_sincronizacao,
+        ((r.created_at - INTERVAL '3 hours') - r.end_date)   AS atraso_apos_encerramento
+    FROM integration.records r
+    WHERE r.source = 'external'
+    AND r.start_date >= NOW() - INTERVAL '7 days'
+    ORDER BY r.created_at DESC;
 
 
 Conclusões
@@ -107,5 +111,4 @@ Análise exploratória via SQL puro
 
 
 Autor
-
 Julio Antunes
